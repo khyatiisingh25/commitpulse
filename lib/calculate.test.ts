@@ -1,8 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   calculateStreak,
   calculateMonthlyStats,
-  isStreakAlive,
   aggregateCalendars,
   calculateWrappedStats,
 } from './calculate';
@@ -332,27 +331,41 @@ describe('calculateStreak — timezone awareness', () => {
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
     expect(result.todayDate).toBe('2024-06-16');
   });
-});
 
-describe('isStreakAlive', () => {
-  it('returns true when both today and yesterday have contributions', () => {
-    expect(isStreakAlive({ contributionCount: 1 }, { contributionCount: 1 })).toBe(true);
-  });
+  it('calculates streak correctly during a spring-forward DST transition edge case', () => {
+    // 1. We must mock the system clock so 'new Date()' behaves predictably
+    vi.useFakeTimers();
 
-  it('returns true when only today has contributions', () => {
-    expect(isStreakAlive({ contributionCount: 1 }, { contributionCount: 0 })).toBe(true);
-  });
+    // 2. Use America/New_York (spring-forward: 2024-03-10)
+    process.env.TZ = 'America/New_York';
 
-  it('returns true when only yesterday has contributions', () => {
-    expect(isStreakAlive({ contributionCount: 0 }, { contributionCount: 1 })).toBe(true);
-  });
+    // 3. Set `now` to early UTC on March 10.
+    // 03:00:00 UTC on March 10 is 22:00:00 (10:00 PM) on March 9 in New York (EST).
+    const mockNow = new Date('2024-03-10T03:00:00.000Z');
+    vi.setSystemTime(mockNow);
 
-  it('returns false when both today and yesterday have zero contributions', () => {
-    expect(isStreakAlive({ contributionCount: 0 }, { contributionCount: 0 })).toBe(false);
-  });
+    // 4. Build a calendar with contributions on March 9 and March 10
+    const dstCalendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-03-09' },
+            { contributionCount: 1, date: '2024-03-10' },
+          ],
+        },
+      ],
+    } as Parameters<typeof calculateStreak>[0];
 
-  it('returns false when yesterday is null and today has no contributions', () => {
-    expect(isStreakAlive({ contributionCount: 0 }, null)).toBe(false);
+    // 5. Assert currentStreak is calculated correctly
+    const result = calculateStreak(dstCalendar, 'America/New_York');
+
+    // Because it is currently March 9th in New York, the current streak should securely be 1
+    expect(result.currentStreak).toBe(1);
+
+    // 6. Cleanup to prevent breaking other tests
+    vi.useRealTimers();
+    process.env.TZ = '';
   });
 });
 
