@@ -78,7 +78,6 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('Python')).toBeDefined();
   });
 
-
   it('renders chart elements and layout structure visible across viewport sizes', () => {
     const mockLangsA = [
       { name: 'TypeScript', percentage: 80, color: '#3178c6' },
@@ -109,6 +108,14 @@ describe('RadarChart', () => {
     expect(lines.length).toBeGreaterThan(0);
 
     // Check that axis labels are rendered
+    expect(screen.getAllByText('TypeScript')).toBeDefined();
+    expect(screen.getAllByText('Python')).toBeDefined();
+    expect(screen.getAllByText('JavaScript')).toBeDefined();
+
+    // Check that data points (circles) are rendered
+    const circles = container.querySelectorAll('circle');
+    expect(circles.length).toBeGreaterThan(0);
+  });
 
   it('deduplicates shared languages so TypeScript appears as a single axis label', () => {
     const langsA = [{ name: 'TypeScript', percentage: 70, color: '#3178c6' }];
@@ -146,20 +153,16 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('Python')).toBeDefined();
     expect(screen.getAllByText('JavaScript')).toBeDefined();
 
-
-    // Check that data points (circles) are rendered
-
     expect(screen.getByText('100%')).toBeDefined();
     expect(screen.getByText('10%')).toBeDefined();
 
     const svg = container.querySelector('svg');
     expect(svg).not.toBeNull();
 
-
+    // Check that data points (circles) are rendered
     const circles = container.querySelectorAll('circle');
     expect(circles.length).toBeGreaterThan(0);
   });
-
 
   it('dynamically scales axis points based on dataset max score', () => {
     // Mock dataset with specific maximum score
@@ -204,6 +207,7 @@ describe('RadarChart', () => {
       circlePositions.map((pos) => `${pos.cx},${pos.cy}`)
     );
     expect(uniquePositions.size).toBeGreaterThan(1);
+  });
 
   it('check generation of different polygon coordinates for different score magnitudes', () => {
     const highScores = [
@@ -267,6 +271,5 @@ describe('RadarChart', () => {
         unmount();
       }
     );
-
   });
 });
